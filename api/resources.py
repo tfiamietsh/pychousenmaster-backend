@@ -10,6 +10,17 @@ login_parser.add_argument('username', required=True)
 login_parser.add_argument('password', required=True)
 
 
+class UserRegister(Resource):
+    @staticmethod
+    def post() -> dict:
+        data = login_parser.parse_args()
+        user = UserModel.find_by_username(data['username'])
+
+        if user:
+            return {'message': 'User \'{}\' already exists'}
+        return {'message': 'OK'}
+
+
 class UserLogin(Resource):
     @staticmethod
     def post() -> dict or Tuple[dict, int]:
