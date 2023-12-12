@@ -44,6 +44,7 @@ from api.resources import *
 
 api.add_resource(Dummy, '/')
 api.add_resource(UserLogin, '/login')
+api.add_resource(UserRegister, '/register')
 api.add_resource(UserLogoutAccessToken, '/logout/access')
 api.add_resource(UserLogoutRefreshToken, '/logout/refresh')
 api.add_resource(TokenRefresh, '/token/refresh')

@@ -1,5 +1,6 @@
 from typing import Tuple
 from passlib.hash import pbkdf2_sha256 as sha256
+from sqlalchemy.exc import SQLAlchemyError
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt, get_jwt_identity
 from flask_jwt_extended.exceptions import RevokedTokenError
 from flask_restful import reqparse, Resource
@@ -18,7 +19,11 @@ class UserRegister(Resource):
 
         if user:
             return {'message': 'User \'{}\' already exists'}
-        return {'message': 'OK'}
+        try:
+            UserModel(username=data['username'], password_hash=sha256.hash(data['password'])).add()
+        except SQLAlchemyError:
+            return {'message': 'Something gone wrong'}
+        return {}
 
 
 class UserLogin(Resource):
