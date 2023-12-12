@@ -21,9 +21,6 @@ api = Api(app)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
-with app.app_context():
-    db.create_all()
-
 
 @app.after_request
 def add_headers(response: Response) -> Response:
@@ -48,3 +45,6 @@ api.add_resource(UserRegister, '/register')
 api.add_resource(UserLogoutAccessToken, '/logout/access')
 api.add_resource(UserLogoutRefreshToken, '/logout/refresh')
 api.add_resource(TokenRefresh, '/token/refresh')
+
+with app.app_context():
+    db.create_all()

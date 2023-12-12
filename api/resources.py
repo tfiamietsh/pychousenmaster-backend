@@ -18,7 +18,7 @@ class UserRegister(Resource):
         user = UserModel.find_by_username(data['username'])
 
         if user:
-            return {'error': 'User \'{}\' already exists'}
+            return {'error': 'User \'{}\' already exists'.format(data['username'])}
         try:
             UserModel(username=data['username'], password_hash=sha256.hash(data['password'])).add()
         except SQLAlchemyError:
