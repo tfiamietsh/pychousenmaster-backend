@@ -1,0 +1,9 @@
+{
+    "name": "Py挑戦マスター",
+    "secret_key": "mokuteki-tassei",
+    "pg_db": "PyChousenMaster",
+    "pg_user": "postgres",
+    "pg_pass": "5432",
+    "pg_port": "5432",
+    "cli_port": "4200"
+}
