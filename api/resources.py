@@ -18,7 +18,7 @@ class UserRegister(Resource):
         user = UserModel.find_by_username(data['username'])
 
         if user:
-            return {'error': 'User \'{}\' already exists'.format(data['username'])}
+            return {'error': 'Username \'{}\' is invalid'.format(data['username'])}
         try:
             UserModel(username=data['username'], password_hash=sha256.hash(data['password'])).add()
         except SQLAlchemyError:
@@ -32,16 +32,14 @@ class UserLogin(Resource):
         data = login_parser.parse_args()
         user = UserModel.find_by_username(data['username'])
 
-        if not user:
-            return {'message': 'User \'{}\' does not exist'}
-        if sha256.verify(data['password'], user.password_hash):
+        if user and sha256.verify(data['password'], user.password_hash):
             return {'id': user.user_id,
                     'username': user.username,
                     'access_token': create_access_token(identity=data['username']),
                     'refresh_token': create_refresh_token(identity=data['username'])
                     }
         else:
-            return {'message': 'Wrong password'}
+            return {'message': 'Incorrect username or password'}
 
 
 class UserLogoutToken(Resource):
