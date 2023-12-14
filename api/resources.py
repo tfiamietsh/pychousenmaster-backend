@@ -42,9 +42,10 @@ class UserLogin(Resource):
             return {'message': 'Incorrect username or password'}
 
 
-class UserLogoutToken(Resource):
+class UserLogoutAccessToken(Resource):
     @staticmethod
-    def _post() -> dict or Tuple[dict, int]:
+    @jwt_required()
+    def post() -> dict or Tuple[dict, int]:
         jti = get_jwt()['jti']
         try:
             revoked_token = RevokedTokenModel(jti=jti)
@@ -54,18 +55,17 @@ class UserLogoutToken(Resource):
             return {'message': 'Something gone wrong...'}, 500
 
 
-class UserLogoutAccessToken(UserLogoutToken):
-    @staticmethod
-    @jwt_required()
-    def post() -> dict or Tuple[dict, int]:
-        return super()._post()
-
-
-class UserLogoutRefreshToken(UserLogoutToken):
+class UserLogoutRefreshToken(Resource):
     @staticmethod
     @jwt_required(refresh=True)
     def post() -> dict or Tuple[dict, int]:
-        return super()._post()
+        jti = get_jwt()['jti']
+        try:
+            revoked_token = RevokedTokenModel(jti=jti)
+            revoked_token.add()
+            return {'message': 'Token has been revoked'}
+        except RevokedTokenError:
+            return {'message': 'Something gone wrong...'}, 500
 
 
 class TokenRefresh(Resource):
