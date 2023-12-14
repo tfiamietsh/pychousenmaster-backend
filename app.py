@@ -14,7 +14,9 @@ app.config.update({
     'SQLALCHEMY_TRACK_MODIFICATIONS': False,
     'SECRET_KEY': config['secret_key'],
     'JWT_SECRET_KEY': 'jwt-' + config['secret_key'],
-    'JWT_ACCESS_TOKEN_EXPIRES': timedelta(minutes=10)
+    'JWT_ACCESS_TOKEN_EXPIRES': timedelta(minutes=10),
+    'JWT_BLACKLIST_ENABLED': True,
+    'JWT_BLACKLIST_TOKEN_CHECKS': ['access', 'refresh']
 })
 cors = CORS(app)
 api = Api(app)
