@@ -83,12 +83,6 @@ class Problem(Resource):
         problem = db.session.query(ProblemModel).filter(ProblemModel.check_title(title)).first()
         if not problem:
             return {'message': 'Page not found'}, 404
-        feedback_positive = db.session.query(func.sum(FeedbackModel.feedback)) \
-            .where(FeedbackModel.problem_id == problem.id) \
-            .where(FeedbackModel.feedback > 0).scalar()
-        feedback_negative = db.session.query(func.abs(func.sum(FeedbackModel.feedback))) \
-            .where(FeedbackModel.problem_id == problem.id) \
-            .where(FeedbackModel.feedback < 0).scalar()
         testcases = db.session.query(TestcaseModel, TestcaseInputModel, TestcaseOutputModel) \
             .where(TestcaseModel.problem_id == problem.id) \
             .where(TestcaseModel.id == TestcaseInputModel.testcase_id) \
@@ -113,8 +107,6 @@ class Problem(Resource):
             'title': problem.title,
             'difficulty': problem.difficulty,
             'state': state,
-            'likes': feedback_positive,
-            'dislikes': feedback_negative,
             'description': problem.description,
             'code': problem.code,
             'totalAccepted': len(submissions_accepted.all()),
@@ -125,11 +117,58 @@ class Problem(Resource):
                     t.TestcaseInputModel.name: t.TestcaseInputModel.value for t in list(ts)
                 },
                 'output': output
-            } for output, ts in groupby(testcases, lambda t: t.TestcaseOutputModel.value)],
+            } for output, ts in groupby(testcases, lambda t: t.TestcaseOutputModel.value)][:3],
             'submissions': [{
                 'status': submission.SubmissionModel.status,
                 'runtime': submission.SubmissionModel.runtime,
                 'memory': submission.SubmissionModel.memory,
                 'code': submission.SubmissionModel.code
             } for submission in submissions_all]
+        }
+
+
+class LeaveFeedback(Resource):
+    @staticmethod
+    def post():
+        feedback_parser = reqparse.RequestParser()
+        feedback_parser.add_argument('title', required=True)
+        feedback_parser.add_argument('user_id', required=True)
+        feedback_parser.add_argument('feedback', required=True)
+
+        data = feedback_parser.parse_args()
+        user_id, feedback = int(data['user_id']), int(data['feedback'])
+        if user_id > 0:
+            problem = db.session.query(ProblemModel).filter(ProblemModel.title == data['title']).first()
+            feedback_query = db.session.query(FeedbackModel) \
+                .filter(FeedbackModel.problem_id == problem.id) \
+                .filter(FeedbackModel.user_id == user_id)
+
+            if feedback_query.all():
+                feedback_query.update({'feedback': feedback})
+                db.session.commit()
+            else:
+                FeedbackModel(user_id=user_id, problem_id=problem.id, feedback=feedback).add()
+        return {}, 200
+
+
+class GetFeedback(Resource):
+    @staticmethod
+    def get(title: str, user_id: str):
+        problem = db.session.query(ProblemModel).filter(ProblemModel.title == title).first()
+        feedbacks_positive = db.session.query(func.sum(FeedbackModel.feedback)) \
+            .where(FeedbackModel.problem_id == problem.id) \
+            .where(FeedbackModel.feedback > 0).scalar()
+        feedbacks_negative = db.session.query(func.abs(func.sum(FeedbackModel.feedback))) \
+            .where(FeedbackModel.problem_id == problem.id) \
+            .where(FeedbackModel.feedback < 0).scalar()
+        user_feedback = db.session.query(FeedbackModel)\
+            .where(FeedbackModel.problem_id == problem.id) \
+            .where(FeedbackModel.user_id == int(user_id)).all()
+        feedback = 0
+        if user_feedback:
+            feedback = user_feedback[0].feedback
+        return {
+            'positive': feedbacks_positive,
+            'negative': feedbacks_negative,
+            'user': feedback
         }
