@@ -41,12 +41,12 @@ def check_if_token_in_blocklist(_, decrypted_token: dict):
 
 from api.resources import *
 
-api.add_resource(Dummy, '/')
 api.add_resource(UserLogin, '/login')
 api.add_resource(UserRegister, '/register')
 api.add_resource(UserLogoutAccessToken, '/logout/access')
 api.add_resource(UserLogoutRefreshToken, '/logout/refresh')
 api.add_resource(TokenRefresh, '/token/refresh')
+api.add_resource(Problem, '/problem/<string:title>+<string:user_id>')
 
 with app.app_context():
     db.create_all()

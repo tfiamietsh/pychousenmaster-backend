@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from app import db
 
 
@@ -26,3 +27,70 @@ class RevokedTokenModel(db.Model, _HasAddMethod):
     @classmethod
     def is_jti_in_blocklist(cls, jti: str) -> bool:
         return bool(cls.query.filter_by(jti=jti).first())
+
+
+class TagModel(db.Model):
+    __tablename__ = 'tags'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+
+
+class ProblemModel(db.Model, _HasAddMethod):
+    __tablename__ = 'problems'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    title = db.Column(db.String(120), nullable=False)
+    difficulty = db.Column(db.SmallInteger, nullable=False)
+    description = db.Column(db.String(2000), nullable=False)
+    code = db.Column(db.String(1000), nullable=False)
+
+    @classmethod
+    def check_title(cls, title: str) -> str:
+        return func.replace(cls.title, ' ', '-').ilike(title)
+
+
+class ProblemTagModel(db.Model, _HasAddMethod):
+    __tablename__ = 'problem_tags'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    problem_id = db.Column(db.SmallInteger, nullable=False)
+    tag_id = db.Column(db.SmallInteger, nullable=False)
+
+
+class FeedbackModel(db.Model, _HasAddMethod):
+    __tablename__ = 'feedbacks'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    user_id = db.Column(db.SmallInteger, nullable=False)
+    problem_id = db.Column(db.SmallInteger, nullable=False)
+    feedback = db.Column(db.SmallInteger, nullable=False)
+
+
+class SubmissionModel(db.Model, _HasAddMethod):
+    __tablename__ = 'submissions'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    user_id = db.Column(db.SmallInteger, nullable=False)
+    problem_id = db.Column(db.SmallInteger, nullable=False)
+    status = db.Column(db.String(120), nullable=False)
+    runtime = db.Column(db.SmallInteger, nullable=False)
+    memory = db.Column(db.SmallInteger, nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    code = db.Column(db.String(5000), nullable=False)
+
+
+class TestcaseModel(db.Model, _HasAddMethod):
+    __tablename__ = 'testcases'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    problem_id = db.Column(db.SmallInteger, nullable=False)
+
+
+class TestcaseInputModel(db.Model, _HasAddMethod):
+    __tablename__ = 'testcase_inputs'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    testcase_id = db.Column(db.SmallInteger, nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    value = db.Column(db.String(5000), nullable=False)
+
+
+class TestcaseOutputModel(db.Model, _HasAddMethod):
+    __tablename__ = 'testcase_outputs'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    testcase_id = db.Column(db.SmallInteger, nullable=False)
+    value = db.Column(db.String(5000), nullable=False)
