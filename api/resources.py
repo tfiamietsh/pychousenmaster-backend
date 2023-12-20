@@ -1,5 +1,6 @@
 from typing import Tuple
 from itertools import groupby
+from datetime import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
 from sqlalchemy.exc import SQLAlchemyError
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt, get_jwt_identity
@@ -7,6 +8,7 @@ from flask_jwt_extended.exceptions import RevokedTokenError
 from flask_restful import reqparse, Resource
 from api.models import *
 from app import db
+from utils.sandbox import Sandbox
 
 login_parser = reqparse.RequestParser()
 login_parser.add_argument('username', required=True)
@@ -172,3 +174,51 @@ class GetFeedback(Resource):
             'negative': feedbacks_negative,
             'user': feedback
         }
+
+
+class SandboxRun(Resource):
+    @staticmethod
+    def post():
+        sandbox_data_parser = reqparse.RequestParser()
+        sandbox_data_parser.add_argument('title', required=True)
+        sandbox_data_parser.add_argument('code', required=True)
+        sandbox_data_parser.add_argument('testcases', required=True)
+
+        data = sandbox_data_parser.parse_args()
+        problem = db.session.query(ProblemModel).filter(ProblemModel.title == data['title']).first()
+        method_name = problem.code[4:problem.code.find('(')]
+        response = Sandbox.test(data['code'], method_name, data['testcases'], problem.solution)
+        return {
+            key: response[key] for key in ['outputs', 'results', 'status']
+        }
+
+
+class SandboxSubmit(Resource):
+    @staticmethod
+    def post():
+        sandbox_data_parser = reqparse.RequestParser()
+        sandbox_data_parser.add_argument('title', required=True)
+        sandbox_data_parser.add_argument('user_id', required=True)
+        sandbox_data_parser.add_argument('code', required=True)
+
+        data = sandbox_data_parser.parse_args()
+        user_id = int(data['user_id'])
+        if user_id > 0:
+            date = datetime.now()
+            problem = db.session.query(ProblemModel).filter(ProblemModel.title == data['title']).first()
+            method_name = problem.code[4:problem.code.find('(')]
+            testcases_raw = db.session.query(TestcaseModel, TestcaseInputModel, TestcaseOutputModel) \
+                .where(TestcaseModel.problem_id == problem.id) \
+                .where(TestcaseModel.id == TestcaseInputModel.testcase_id) \
+                .where(TestcaseModel.id == TestcaseOutputModel.testcase_id) \
+                .all()
+            testcases = str([{
+                'input': {
+                    t.TestcaseInputModel.name: t.TestcaseInputModel.value for t in list(ts)
+                },
+                'output': output
+            } for output, ts in groupby(testcases_raw, lambda t: t.TestcaseOutputModel.value)])
+            response = Sandbox.test(data['code'], method_name, testcases, problem.solution)
+            SubmissionModel(problem_id=problem.id, user_id=user_id, runtime=response['runtime'],
+                            memory=response['memory'], status=response['status'], date=date, code=data['code']).add()
+        return {}, 200

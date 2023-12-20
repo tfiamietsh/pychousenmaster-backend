@@ -42,6 +42,7 @@ class ProblemModel(db.Model, _HasAddMethod):
     difficulty = db.Column(db.SmallInteger, nullable=False)
     description = db.Column(db.String(2000), nullable=False)
     code = db.Column(db.String(1000), nullable=False)
+    solution = db.Column(db.String(1000), nullable=False)
 
     @classmethod
     def check_title(cls, title: str) -> str:
@@ -70,7 +71,7 @@ class SubmissionModel(db.Model, _HasAddMethod):
     problem_id = db.Column(db.SmallInteger, nullable=False)
     status = db.Column(db.String(120), nullable=False)
     runtime = db.Column(db.SmallInteger, nullable=False)
-    memory = db.Column(db.SmallInteger, nullable=False)
+    memory = db.Column(db.Float, nullable=False)
     date = db.Column(db.Date, nullable=False)
     code = db.Column(db.String(5000), nullable=False)
 

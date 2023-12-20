@@ -49,6 +49,8 @@ api.add_resource(TokenRefresh, '/token/refresh')
 api.add_resource(Problem, '/problem/<string:title>+<string:user_id>')
 api.add_resource(LeaveFeedback, '/feedback')
 api.add_resource(GetFeedback, '/feedback/<string:title>+<string:user_id>')
+api.add_resource(SandboxRun, '/run')
+api.add_resource(SandboxSubmit, '/submit')
 
 with app.app_context():
     db.create_all()
