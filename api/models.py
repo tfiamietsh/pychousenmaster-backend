@@ -72,7 +72,7 @@ class SubmissionModel(db.Model, _HasAddMethod):
     status = db.Column(db.String(120), nullable=False)
     runtime = db.Column(db.SmallInteger, nullable=False)
     memory = db.Column(db.Float, nullable=False)
-    date = db.Column(db.Date, nullable=False)
+    datetime = db.Column(db.DateTime, nullable=False)
     code = db.Column(db.String(5000), nullable=False)
 
 

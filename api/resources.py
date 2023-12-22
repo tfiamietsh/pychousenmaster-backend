@@ -90,16 +90,6 @@ class Problem(Resource):
             .where(TestcaseModel.id == TestcaseInputModel.testcase_id) \
             .where(TestcaseModel.id == TestcaseOutputModel.testcase_id) \
             .all()
-        submissions = db.session.query(SubmissionModel) \
-            .where(SubmissionModel.problem_id == problem.id)
-        submissions_all = submissions.all()
-        submissions_accepted = submissions.where(SubmissionModel.status == 'Accepted')
-        user_id = int(user_id)
-        state = 2
-        if submissions_accepted.where(SubmissionModel.user_id == user_id).all():
-            state = 0
-        elif submissions.where(SubmissionModel.user_id == user_id).all():
-            state = 1
         tags = db.session.query(ProblemTagModel, TagModel) \
             .where(ProblemTagModel.problem_id == problem.id) \
             .where(ProblemTagModel.tag_id == TagModel.id) \
@@ -108,24 +98,15 @@ class Problem(Resource):
         return {
             'title': problem.title,
             'difficulty': problem.difficulty,
-            'state': state,
             'description': problem.description,
             'code': problem.code,
-            'totalAccepted': len(submissions_accepted.all()),
-            'totalSubmissions': len(submissions_all),
             'tags': sorted([tag.TagModel.name for tag in tags]),
             'testcases': [{
                 'input': {
                     t.TestcaseInputModel.name: t.TestcaseInputModel.value for t in list(ts)
                 },
                 'output': output
-            } for output, ts in groupby(testcases, lambda t: t.TestcaseOutputModel.value)][:3],
-            'submissions': [{
-                'status': submission.SubmissionModel.status,
-                'runtime': submission.SubmissionModel.runtime,
-                'memory': submission.SubmissionModel.memory,
-                'code': submission.SubmissionModel.code
-            } for submission in submissions_all]
+            } for output, ts in groupby(testcases, lambda t: t.TestcaseOutputModel.value)][:3]
         }
 
 
@@ -222,3 +203,33 @@ class SandboxSubmit(Resource):
             SubmissionModel(problem_id=problem.id, user_id=user_id, runtime=response['runtime'],
                             memory=response['memory'], status=response['status'], date=date, code=data['code']).add()
         return {}, 200
+
+
+class Submissions(Resource):
+    @staticmethod
+    def get(title: str, user_id: str):
+        user_id = int(user_id)
+        problem = db.session.query(ProblemModel).filter(ProblemModel.title == title).first()
+        submissions = db.session.query(SubmissionModel) \
+            .where(SubmissionModel.problem_id == problem.id)
+        submissions_all = submissions.all()
+        submissions_accepted = submissions.where(SubmissionModel.status == 'Accepted')
+        user_submissions = submissions.where(SubmissionModel.user_id == user_id).all()
+        state = 2
+
+        if submissions_accepted.where(SubmissionModel.user_id == user_id).all():
+            state = 0
+        elif user_submissions:
+            state = 1
+        return {
+            'problemState': state,
+            'totalAccepted': len(submissions_accepted.all()),
+            'totalSubmissions': len(submissions_all),
+            'submissions': [{
+                'status': submission.status,
+                'runtime': submission.runtime,
+                'memory': submission.memory,
+                'date': submission.datetime.strftime('%b %d, %Y'),
+                'code': submission.code
+            } for submission in sorted(user_submissions, key=lambda submission: submission.datetime, reverse=True)]
+        }

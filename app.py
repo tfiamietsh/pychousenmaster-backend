@@ -51,6 +51,7 @@ api.add_resource(LeaveFeedback, '/feedback')
 api.add_resource(GetFeedback, '/feedback/<string:title>+<string:user_id>')
 api.add_resource(SandboxRun, '/run')
 api.add_resource(SandboxSubmit, '/submit')
+api.add_resource(Submissions, '/submissions/<string:title>+<string:user_id>')
 
 with app.app_context():
     db.create_all()
