@@ -52,6 +52,11 @@ api.add_resource(GetFeedback, '/feedback/<string:title>+<string:user_id>')
 api.add_resource(SandboxRun, '/run')
 api.add_resource(SandboxSubmit, '/submit')
 api.add_resource(Submissions, '/submissions/<string:title>+<string:user_id>')
+api.add_resource(NewChallenge, '/new-challenge')
+api.add_resource(ToggleChallenge, '/toggle-challenge')
+api.add_resource(Challenges, '/challenges/<string:username>+<string:authorized>')
+api.add_resource(DeleteChallenge, '/delete-challenge')
+api.add_resource(DeleteChallengeProblem, '/delete-challenge-problem')
 
 with app.app_context():
     db.create_all()

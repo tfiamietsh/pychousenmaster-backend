@@ -144,7 +144,7 @@ class GetFeedback(Resource):
         feedbacks_negative = db.session.query(func.abs(func.sum(FeedbackModel.feedback))) \
             .where(FeedbackModel.problem_id == problem.id) \
             .where(FeedbackModel.feedback < 0).scalar()
-        user_feedback = db.session.query(FeedbackModel)\
+        user_feedback = db.session.query(FeedbackModel) \
             .where(FeedbackModel.problem_id == problem.id) \
             .where(FeedbackModel.user_id == int(user_id)).all()
         feedback = 0
@@ -233,3 +233,90 @@ class Submissions(Resource):
                 'code': submission.code
             } for submission in sorted(user_submissions, key=lambda submission: submission.datetime, reverse=True)]
         }
+
+
+class NewChallenge(Resource):
+    @staticmethod
+    def post():
+        new_challenge_data_parser = reqparse.RequestParser()
+        new_challenge_data_parser.add_argument('username', required=True)
+        new_challenge_data_parser.add_argument('name', required=True)
+
+        data = new_challenge_data_parser.parse_args()
+        user = UserModel.find_by_username(data['username'])
+        if user:
+            ChallengeModel(user_id=user.user_id, name=data['name'], is_public=False).add()
+        return {}
+
+
+class ToggleChallenge(Resource):
+    @staticmethod
+    def post():
+        toggle_challenge_data_parser = reqparse.RequestParser()
+        toggle_challenge_data_parser.add_argument('username', required=True)
+        toggle_challenge_data_parser.add_argument('name', required=True)
+
+        data = toggle_challenge_data_parser.parse_args()
+        user = UserModel.find_by_username(data['username'])
+        query = db.session.query(ChallengeModel) \
+            .filter(ChallengeModel.user_id == user.user_id) \
+            .filter(ChallengeModel.name == data['name'])
+        if query.all():
+            query.update({'is_public': not query.first().is_public})
+            db.session.commit()
+        return {}
+
+
+class Challenges(Resource):
+    @staticmethod
+    def get(username: str, authorized: str):
+        user = UserModel.find_by_username(username)
+        if not user:
+            return {}, 404
+        query = db.session.query(ChallengeModel).filter(ChallengeModel.user_id == user.user_id)
+        if authorized == 'false':
+            query = query.filter(ChallengeModel.is_public)
+        return {'challenges': [{
+            'name': challenge.name,
+            'isPublic': challenge.is_public,
+            'problems': list(sorted(map(lambda t: t.ProblemModel.title,
+                                        db.session.query(ChallengeProblemModel, ProblemModel)
+                                        .filter(ChallengeProblemModel.challenge_id == challenge.id)
+                                        .filter(ChallengeProblemModel.problem_id == ProblemModel.id).all())))
+        } for challenge in list(sorted(query.all(), key=lambda challenge: challenge.id))]}
+
+
+class DeleteChallenge(Resource):
+    @staticmethod
+    def post():
+        delete_challenge_data_parser = reqparse.RequestParser()
+        delete_challenge_data_parser.add_argument('username', required=True)
+        delete_challenge_data_parser.add_argument('name', required=True)
+
+        data = delete_challenge_data_parser.parse_args()
+        db.session.query(ChallengeModel) \
+            .filter(ChallengeModel.user_id == UserModel.find_by_username(data['username']).user_id) \
+            .filter(ChallengeModel.name == data['name']).delete()
+        db.session.commit()
+        return {}
+
+
+class DeleteChallengeProblem(Resource):
+    @staticmethod
+    def post():
+        delete_challenge_problem_data_parser = reqparse.RequestParser()
+        delete_challenge_problem_data_parser.add_argument('username', required=True)
+        delete_challenge_problem_data_parser.add_argument('challenge_name', required=True)
+        delete_challenge_problem_data_parser.add_argument('problem_title', required=True)
+
+        data = delete_challenge_problem_data_parser.parse_args()
+        challenge = db.session.query(ChallengeModel) \
+            .filter(ChallengeModel.user_id == UserModel.find_by_username(data['username']).user_id) \
+            .filter(ChallengeModel.name == data['challenge_name']).first()
+        problem = db.session.query(ProblemModel) \
+            .filter(ProblemModel.title == data['problem_title']).first()
+        db.session.query(ChallengeProblemModel) \
+            .filter(ChallengeProblemModel.problem_id == problem.id) \
+            .filter(ChallengeProblemModel.challenge_id == challenge.id).delete()
+        db.session.commit()
+        return {}

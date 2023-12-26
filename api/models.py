@@ -95,3 +95,18 @@ class TestcaseOutputModel(db.Model, _HasAddMethod):
     id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
     testcase_id = db.Column(db.SmallInteger, nullable=False)
     value = db.Column(db.String(5000), nullable=False)
+
+
+class ChallengeModel(db.Model, _HasAddMethod):
+    __tablename__ = 'challenges'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    user_id = db.Column(db.SmallInteger, nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    is_public = db.Column(db.Boolean, nullable=False)
+
+
+class ChallengeProblemModel(db.Model, _HasAddMethod):
+    __tablename__ = 'challenge_problems'
+    id = db.Column(db.SmallInteger, primary_key=True, nullable=False)
+    challenge_id = db.Column(db.SmallInteger, nullable=False)
+    problem_id = db.Column(db.SmallInteger, nullable=False)
