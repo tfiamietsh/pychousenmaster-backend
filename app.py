@@ -56,7 +56,9 @@ api.add_resource(NewChallenge, '/new-challenge')
 api.add_resource(ToggleChallenge, '/toggle-challenge')
 api.add_resource(Challenges, '/challenges/<string:username>+<string:authorized>')
 api.add_resource(DeleteChallenge, '/delete-challenge')
+api.add_resource(AddChallengeProblem, '/add-challenge-problem')
 api.add_resource(DeleteChallengeProblem, '/delete-challenge-problem')
+api.add_resource(ProblemChallenges, '/problem-challenges/<string:username>+<string:title>')
 
 with app.app_context():
     db.create_all()

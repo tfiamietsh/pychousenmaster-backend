@@ -301,6 +301,24 @@ class DeleteChallenge(Resource):
         return {}
 
 
+class AddChallengeProblem(Resource):
+    @staticmethod
+    def post():
+        add_challenge_problem_data_parser = reqparse.RequestParser()
+        add_challenge_problem_data_parser.add_argument('username', required=True)
+        add_challenge_problem_data_parser.add_argument('challenge_name', required=True)
+        add_challenge_problem_data_parser.add_argument('problem_title', required=True)
+
+        data = add_challenge_problem_data_parser.parse_args()
+        challenge = db.session.query(ChallengeModel) \
+            .filter(ChallengeModel.user_id == UserModel.find_by_username(data['username']).user_id) \
+            .filter(ChallengeModel.name == data['challenge_name']).first()
+        problem = db.session.query(ProblemModel) \
+            .filter(ProblemModel.title == data['problem_title']).first()
+        ChallengeProblemModel(challenge_id=challenge.id, problem_id=problem.id).add()
+        return {}
+
+
 class DeleteChallengeProblem(Resource):
     @staticmethod
     def post():
@@ -320,3 +338,18 @@ class DeleteChallengeProblem(Resource):
             .filter(ChallengeProblemModel.challenge_id == challenge.id).delete()
         db.session.commit()
         return {}
+
+
+class ProblemChallenges(Resource):
+    @staticmethod
+    def get(username: str, title: str):
+        user = UserModel.find_by_username(username)
+        problem = db.session.query(ProblemModel).filter(ProblemModel.title == title).first()
+        challenges = db.session.query(ChallengeModel) \
+            .filter(ChallengeModel.user_id == user.user_id).all()
+        return {'challenges': [{
+            'name': challenge.name,
+            'isIn': db.session.query(db.exists()
+                                     .where(ChallengeProblemModel.challenge_id == challenge.id)
+                                     .where(ChallengeProblemModel.problem_id == problem.id)).scalar()
+        } for challenge in challenges]}
