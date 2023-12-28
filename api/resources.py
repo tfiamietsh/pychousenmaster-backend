@@ -81,7 +81,7 @@ class TokenRefresh(Resource):
 
 class Problem(Resource):
     @staticmethod
-    def get(title: str, user_id: str):
+    def get(title: str):
         problem = db.session.query(ProblemModel).filter(ProblemModel.check_title(title)).first()
         if not problem:
             return {'message': 'Page not found'}, 404
