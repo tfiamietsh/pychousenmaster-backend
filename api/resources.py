@@ -353,3 +353,9 @@ class ProblemChallenges(Resource):
                                      .where(ChallengeProblemModel.challenge_id == challenge.id)
                                      .where(ChallengeProblemModel.problem_id == problem.id)).scalar()
         } for challenge in challenges]}
+
+
+class Tags(Resource):
+    @staticmethod
+    def get():
+        return {'tagIdxMap': {tag.name: 1 << i for i, tag in enumerate(db.session.query(TagModel).all())}}
