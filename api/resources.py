@@ -268,6 +268,16 @@ class ToggleChallenge(Resource):
         return {}
 
 
+class Challenges(Resource):
+    @staticmethod
+    def get():
+        return {'challenges': [{
+            'name': t.ChallengeModel.name,
+            'username': t.UserModel.username
+        } for t in db.session.query(ChallengeModel, UserModel)
+            .filter(ChallengeModel.is_public).filter(ChallengeModel.user_id == UserModel.user_id).all()]}
+
+
 class UserChallenges(Resource):
     @staticmethod
     def get(username: str, authorized: str):
