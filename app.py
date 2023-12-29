@@ -60,6 +60,7 @@ api.add_resource(AddChallengeProblem, '/add-challenge-problem')
 api.add_resource(DeleteChallengeProblem, '/delete-challenge-problem')
 api.add_resource(ProblemChallenges, '/problem-challenges/<string:username>+<string:title>')
 api.add_resource(Tags, '/tags')
+api.add_resource(Problems, '/problems/<string:pattern>+<int:mask>+<string:user_id>')
 
 with app.app_context():
     db.create_all()

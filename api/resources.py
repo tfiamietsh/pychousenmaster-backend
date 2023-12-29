@@ -1,5 +1,6 @@
 from typing import Tuple
 from itertools import groupby
+from functools import reduce
 from datetime import datetime
 from passlib.hash import pbkdf2_sha256 as sha256
 from sqlalchemy.exc import SQLAlchemyError
@@ -359,3 +360,37 @@ class Tags(Resource):
     @staticmethod
     def get():
         return {'tagIdxMap': {tag.name: 1 << i for i, tag in enumerate(db.session.query(TagModel).all())}}
+
+
+class Problems(Resource):
+    @staticmethod
+    def get(pattern: str, mask: int, user_id: str):
+        def get_mask(problem_id: int):
+            return reduce(lambda a, b: a | b, [tag_idx_map[t.TagModel.name]
+                                               for t in db.session.query(ProblemTagModel, TagModel) \
+                          .filter(ProblemTagModel.problem_id == problem_id) \
+                          .filter(ProblemTagModel.tag_id == TagModel.id).all()])
+
+        result, tag_idx_map = [], {tag.name: 1 << i for i, tag in enumerate(db.session.query(TagModel).all())}
+        problems = db.session.query(ProblemModel).filter(ProblemModel.title.ilike(pattern)).all()
+        user_id = int(user_id)
+
+        for problem in problems:
+            temp_mask = get_mask(problem.id)
+            submissions = db.session.query(SubmissionModel).filter(SubmissionModel.problem_id == problem.id)
+            accepted = submissions.filter(SubmissionModel.status == 'Accepted')
+            status = ''
+            if accepted.filter(SubmissionModel.user_id == user_id).first():
+                status = 'Solved'
+            elif submissions.filter(SubmissionModel.user_id == user_id).first():
+                status = 'Attempted'
+            submissions_num = len(submissions.all())
+
+            if (temp_mask | mask) == temp_mask:
+                result.append({
+                    'status': status,
+                    'title': problem.title,
+                    'acceptance': len(accepted.all()) / submissions_num if submissions_num else 0,
+                    'difficulty': {0: 'Easy', 1: 'Medium', 2: 'Hard'}[problem.difficulty]
+                })
+        return {'items': result}
