@@ -268,7 +268,7 @@ class ToggleChallenge(Resource):
         return {}
 
 
-class Challenges(Resource):
+class UserChallenges(Resource):
     @staticmethod
     def get(username: str, authorized: str):
         user = UserModel.find_by_username(username)
