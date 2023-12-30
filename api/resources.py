@@ -2,6 +2,7 @@ from typing import Tuple
 from itertools import groupby
 from functools import reduce
 from datetime import datetime
+from calendar import monthrange
 from passlib.hash import pbkdf2_sha256 as sha256
 from sqlalchemy.exc import SQLAlchemyError
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt, get_jwt_identity
@@ -404,3 +405,65 @@ class Problems(Resource):
                     'difficulty': {0: 'Easy', 1: 'Medium', 2: 'Hard'}[problem.difficulty]
                 })
         return {'items': result}
+
+
+class Profile(Resource):
+    @staticmethod
+    def get(username: str):
+        def elapsed(dt: datetime):
+            ans, now = '', datetime.now()
+            td = now - dt
+            if td.days > 0:
+                if td.days > 730:
+                    ans = 'years'
+                elif td.days > 365:
+                    ans = 'a year'
+                elif td.days > 180:
+                    ans = 'many months'
+                elif td.days > 61:
+                    ans = 'a few months'
+                elif td.days > monthrange(now.year, now.month)[1]:
+                    ans = 'a month'
+                else:
+                    ans = '{} days'.format(td.days)
+            else:
+                if td.seconds > 7200:
+                    ans = '{} hours'.format(td.seconds // 3600)
+                elif td.seconds > 3600:
+                    ans = 'an hour'
+                elif td.seconds > 120:
+                    ans = '{} minutes'.format(td.seconds // 60)
+                elif td.seconds > 60:
+                    ans = 'a minute'
+                elif td.seconds > 2:
+                    ans = '{} seconds'.format(td.seconds)
+                else:
+                    ans = 'a moment'
+            return '{} ago'.format(ans)
+
+        user = UserModel.find_by_username(username)
+        total_easy = len(db.session.query(ProblemModel).filter(ProblemModel.difficulty == 0).all())
+        total_medium = len(db.session.query(ProblemModel).filter(ProblemModel.difficulty == 1).all())
+        total_hard = len(db.session.query(ProblemModel).filter(ProblemModel.difficulty == 2).all())
+        subquery1 = db.session.query(SubmissionModel.problem_id, func.max(SubmissionModel.datetime).label('dt')) \
+            .group_by(SubmissionModel.problem_id).subquery()
+        subquery2 = db.session.query(SubmissionModel) \
+            .filter(SubmissionModel.problem_id == subquery1.c.problem_id) \
+            .filter(SubmissionModel.datetime == subquery1.c.dt).subquery()
+        submissions = db.session.query(SubmissionModel, ProblemModel, subquery2) \
+            .filter(SubmissionModel.user_id == user.user_id) \
+            .filter(SubmissionModel.id == subquery2.c.id) \
+            .filter(SubmissionModel.problem_id == ProblemModel.id)
+        solved = submissions.filter(SubmissionModel.status == 'Accepted')
+        solved_easy = len(solved.filter(ProblemModel.difficulty == 0).all())
+        solved_medium = len(solved.filter(ProblemModel.difficulty == 1).all())
+        solved_hard = len(solved.filter(ProblemModel.difficulty == 2).all())
+
+        return {'profile': {
+            'username': user.username,
+            'solved': {'easy': solved_easy, 'medium': solved_medium, 'hard': solved_hard},
+            'total': {'easy': total_easy, 'medium': total_medium, 'hard': total_hard},
+            'recentAC': [{
+                'title': t.ProblemModel.title,
+                'elapsedTime': elapsed(t.SubmissionModel.datetime)} for t in submissions.limit(10).all()]
+        }}
