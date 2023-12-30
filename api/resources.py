@@ -42,8 +42,8 @@ class UserLogin(Resource):
             return {'id': user.user_id,
                     'username': user.username,
                     'access_token': create_access_token(identity=data['username']),
-                    'refresh_token': create_refresh_token(identity=data['username'])
-                    }
+                    'refresh_token': create_refresh_token(identity=data['username']),
+                    'role': user.role}
         else:
             return {'message': 'Incorrect username or password'}
 
