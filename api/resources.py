@@ -213,7 +213,7 @@ class SandboxSubmit(Resource):
         data = sandbox_data_parser.parse_args()
         user_id = int(data['user_id'])
         if user_id > 0:
-            date = datetime.now()
+            dt = datetime.now()
             problem = db.session.query(ProblemModel).filter(ProblemModel.title == data['title']).first()
             method_name = problem.code[4:problem.code.find('(')]
             testcases_raw = db.session.query(TestcaseModel, TestcaseInputModel, TestcaseOutputModel) \
@@ -229,7 +229,7 @@ class SandboxSubmit(Resource):
             } for output, ts in groupby(testcases_raw, lambda t: t.TestcaseOutputModel.value)])
             response = Sandbox.test(data['code'], method_name, testcases, problem.solution)
             SubmissionModel(problem_id=problem.id, user_id=user_id, runtime=response['runtime'],
-                            memory=response['memory'], status=response['status'], date=date, code=data['code']).add()
+                            memory=response['memory'], status=response['status'], datetime=dt, code=data['code']).add()
         return {}, 200
 
 
