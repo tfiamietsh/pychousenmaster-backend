@@ -1,3 +1,4 @@
+import json
 from typing import Tuple
 from itertools import groupby
 from functools import reduce
@@ -79,6 +80,31 @@ class TokenRefresh(Resource):
     @jwt_required(refresh=True)
     def post():
         return {'access_token': create_access_token(identity=get_jwt_identity())}
+
+
+class NewProblem(Resource):
+    @staticmethod
+    def post():
+        new_problem_data_parser = reqparse.RequestParser()
+        new_problem_data_parser.add_argument('problem', required=True)
+
+        data = new_problem_data_parser.parse_args()
+        problem_raw = json.loads(data['problem'])
+        problem = ProblemModel(title=problem_raw['title'], difficulty=int(problem_raw['difficulty']),
+                               description=problem_raw['description'], code=problem_raw['solution'].split('\n')[0],
+                               solution=problem_raw['solution'])
+        problem.add()
+        for tc in problem_raw['testcases']:
+            testcase = TestcaseModel(problem_id=problem.id)
+            testcase.add()
+            for name in tc['input']:
+                TestcaseInputModel(testcase_id=testcase.id, name=name, value=tc['input'][name]).add()
+            TestcaseOutputModel(testcase_id=testcase.id, value=tc['output']).add()
+        i, n = 0, problem_raw['tagsMask']
+        while n > 0:
+            if n & 1:
+                ProblemTagModel(problem_id=problem.id, tag_id=i + 1).add()
+            n, i = n >> 1, i + 1
 
 
 class Problem(Resource):
