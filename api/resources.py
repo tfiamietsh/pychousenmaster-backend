@@ -471,16 +471,17 @@ class Profile(Resource):
         total_easy = len(db.session.query(ProblemModel).filter(ProblemModel.difficulty == 0).all())
         total_medium = len(db.session.query(ProblemModel).filter(ProblemModel.difficulty == 1).all())
         total_hard = len(db.session.query(ProblemModel).filter(ProblemModel.difficulty == 2).all())
-        subquery1 = db.session.query(SubmissionModel.problem_id, func.max(SubmissionModel.datetime).label('dt')) \
+        subquery = db.session.query(SubmissionModel.problem_id, func.max(SubmissionModel.datetime).label('dt')) \
             .group_by(SubmissionModel.problem_id).subquery()
-        subquery2 = db.session.query(SubmissionModel) \
-            .filter(SubmissionModel.problem_id == subquery1.c.problem_id) \
-            .filter(SubmissionModel.datetime == subquery1.c.dt).subquery()
-        submissions = db.session.query(SubmissionModel, ProblemModel, subquery2) \
+        recent = db.session.query(SubmissionModel, ProblemModel, subquery) \
             .filter(SubmissionModel.user_id == user.user_id) \
-            .filter(SubmissionModel.id == subquery2.c.id) \
+            .filter(SubmissionModel.problem_id == subquery.c.problem_id) \
+            .filter(SubmissionModel.datetime == subquery.c.dt) \
             .filter(SubmissionModel.problem_id == ProblemModel.id)
-        solved = submissions.filter(SubmissionModel.status == 'Accepted')
+        solved = db.session.query(SubmissionModel, ProblemModel) \
+            .filter(SubmissionModel.user_id == user.user_id) \
+            .filter(SubmissionModel.problem_id == ProblemModel.id) \
+            .filter(SubmissionModel.status == 'Accepted')
         solved_easy = len(solved.filter(ProblemModel.difficulty == 0).all())
         solved_medium = len(solved.filter(ProblemModel.difficulty == 1).all())
         solved_hard = len(solved.filter(ProblemModel.difficulty == 2).all())
@@ -491,5 +492,5 @@ class Profile(Resource):
             'total': {'easy': total_easy, 'medium': total_medium, 'hard': total_hard},
             'recentAC': [{
                 'title': t.ProblemModel.title,
-                'elapsedTime': elapsed(t.SubmissionModel.datetime)} for t in submissions.limit(10).all()]
+                'elapsedTime': elapsed(t.SubmissionModel.datetime)} for t in recent.limit(10).all()]
         }}
