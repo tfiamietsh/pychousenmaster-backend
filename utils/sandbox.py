@@ -8,8 +8,10 @@ class Sandbox:
         testcases = eval(testcases)
         for i in range(len(testcases)):
             for key in testcases[i]['input']:
-                testcases[i]['input'][key] = eval(testcases[i]['input'][key])
-            testcases[i]['output'] = eval(testcases[i]['output'])
+                if type(testcases[i]['input'][key]) is str:
+                    testcases[i]['input'][key] = eval(testcases[i]['input'][key])
+            if type(testcases[i]['output']) is str:
+                testcases[i]['output'] = eval(testcases[i]['output'])
         return testcases
 
     @staticmethod
@@ -40,16 +42,16 @@ class Sandbox:
         _, memory = tracemalloc.get_traced_memory()
         memory = round(memory / 1_048_576, 1)
 
-        results = list(map(lambda i: outputs[i] == expected[i], range(len(outputs)))) if outputs else []
+        check = list(map(lambda i: outputs[i] == expected[i], range(len(outputs)))) if outputs else []
         if runtime > 10_000:
             status, runtime, memory = 'Time Limit Exceeded', -1, -1
         elif memory > 1024:
             status, runtime, memory = 'Memory Limit Exceeded', -1, -1
-        elif not all(results):
+        elif not all(check):
             status = 'Wrong Answer'
         return {
             'outputs': [str(t) for t in outputs] if outputs else [],
-            'results': results,
+            'expected': [str(t) for t in expected] if expected else [],
             'runtime': runtime,
             'memory': memory,
             'status': status

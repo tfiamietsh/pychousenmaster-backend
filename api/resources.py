@@ -126,7 +126,7 @@ class Problem(Resource):
             'title': problem.title,
             'difficulty': problem.difficulty,
             'description': problem.description,
-            'code': problem.solution.substring(0, problem.solution.indexOf('\n')),
+            'code': problem.solution[:problem.solution.index('\n')],
             'tags': sorted([tag.TagModel.name for tag in tags]),
             'testcases': [{
                 'input': {
@@ -197,7 +197,7 @@ class SandboxRun(Resource):
         method_name = problem.solution[4:problem.solution.find('(')]
         response = Sandbox.test(data['code'], method_name, data['testcases'], problem.solution)
         return {
-            key: response[key] for key in ['outputs', 'results', 'status']
+            key: response[key] for key in ['outputs', 'expected', 'status']
         }
 
 
@@ -426,7 +426,7 @@ class Problems(Resource):
                 result.append({
                     'status': status,
                     'title': problem.title,
-                    'acceptance': len(accepted.all()) / submissions_num if submissions_num else 0,
+                    'acceptance': 100 * len(accepted.all()) / submissions_num if submissions_num else 0,
                     'difficulty': {0: 'Easy', 1: 'Medium', 2: 'Hard'}[problem.difficulty]
                 })
         return {'items': result}
@@ -449,8 +449,10 @@ class Profile(Resource):
                     ans = 'a few months'
                 elif td.days > monthrange(now.year, now.month)[1]:
                     ans = 'a month'
-                else:
+                elif td.days > 1:
                     ans = '{} days'.format(td.days)
+                else:
+                    ans = 'a day'
             else:
                 if td.seconds > 7200:
                     ans = '{} hours'.format(td.seconds // 3600)
