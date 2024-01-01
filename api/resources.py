@@ -91,8 +91,7 @@ class NewProblem(Resource):
         data = new_problem_data_parser.parse_args()
         problem_raw = json.loads(data['problem'])
         problem = ProblemModel(title=problem_raw['title'], difficulty=int(problem_raw['difficulty']),
-                               description=problem_raw['description'], code=problem_raw['solution'].split('\n')[0],
-                               solution=problem_raw['solution'])
+                               description=problem_raw['description'], solution=problem_raw['solution'])
         problem.add()
         for tc in problem_raw['testcases']:
             testcase = TestcaseModel(problem_id=problem.id)
@@ -127,7 +126,7 @@ class Problem(Resource):
             'title': problem.title,
             'difficulty': problem.difficulty,
             'description': problem.description,
-            'code': problem.code,
+            'code': problem.solution.substring(0, problem.solution.indexOf('\n')),
             'tags': sorted([tag.TagModel.name for tag in tags]),
             'testcases': [{
                 'input': {
@@ -195,7 +194,7 @@ class SandboxRun(Resource):
 
         data = sandbox_data_parser.parse_args()
         problem = db.session.query(ProblemModel).filter(ProblemModel.title == data['title']).first()
-        method_name = problem.code[4:problem.code.find('(')]
+        method_name = problem.solution[4:problem.solution.find('(')]
         response = Sandbox.test(data['code'], method_name, data['testcases'], problem.solution)
         return {
             key: response[key] for key in ['outputs', 'results', 'status']
@@ -215,7 +214,7 @@ class SandboxSubmit(Resource):
         if user_id > 0:
             dt = datetime.now()
             problem = db.session.query(ProblemModel).filter(ProblemModel.title == data['title']).first()
-            method_name = problem.code[4:problem.code.find('(')]
+            method_name = problem.solution[4:problem.solution.find('(')]
             testcases_raw = db.session.query(TestcaseModel, TestcaseInputModel, TestcaseOutputModel) \
                 .where(TestcaseModel.problem_id == problem.id) \
                 .where(TestcaseModel.id == TestcaseInputModel.testcase_id) \

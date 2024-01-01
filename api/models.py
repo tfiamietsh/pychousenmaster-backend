@@ -42,7 +42,6 @@ class ProblemModel(db.Model, _HasAddMethod):
     title = db.Column(db.String(120), nullable=False)
     difficulty = db.Column(db.SmallInteger, nullable=False)
     description = db.Column(db.String(2000), nullable=False)
-    code = db.Column(db.String(1000), nullable=False)
     solution = db.Column(db.String(1000), nullable=False)
 
     @classmethod
