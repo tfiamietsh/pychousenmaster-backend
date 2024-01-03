@@ -75,6 +75,13 @@ class UserLogoutRefreshToken(Resource):
             return {'message': 'Something gone wrong...'}, 500
 
 
+class Users(Resource):
+    @staticmethod
+    def get(pattern: str):
+        usernames = db.session.query(UserModel).filter(UserModel.username.ilike(pattern)).all()
+        return {'users': [{'username': t.username} for t in usernames]}
+
+
 class TokenRefresh(Resource):
     @staticmethod
     @jwt_required(refresh=True)
@@ -296,11 +303,11 @@ class ToggleChallenge(Resource):
 
 class Challenges(Resource):
     @staticmethod
-    def get():
+    def get(pattern: str):
         return {'challenges': [{
             'name': t.ChallengeModel.name,
             'username': t.UserModel.username
-        } for t in db.session.query(ChallengeModel, UserModel)
+        } for t in db.session.query(ChallengeModel, UserModel).filter(ChallengeModel.name.ilike(pattern))
             .filter(ChallengeModel.is_public).filter(ChallengeModel.user_id == UserModel.user_id).all()]}
 
 
@@ -400,11 +407,11 @@ class Tags(Resource):
 
 class Problems(Resource):
     @staticmethod
-    def get(pattern: str, mask: int, user_id: str):
+    def get(mask: int, user_id: str, pattern: str):
         def get_mask(problem_id: int):
             return reduce(lambda a, b: a | b, [tag_idx_map[t.TagModel.name]
-                                               for t in db.session.query(ProblemTagModel, TagModel) \
-                          .filter(ProblemTagModel.problem_id == problem_id) \
+                                               for t in db.session.query(ProblemTagModel, TagModel)
+                          .filter(ProblemTagModel.problem_id == problem_id)
                           .filter(ProblemTagModel.tag_id == TagModel.id).all()])
 
         result, tag_idx_map = [], {tag.name: 1 << i for i, tag in enumerate(db.session.query(TagModel).all())}
@@ -429,7 +436,7 @@ class Problems(Resource):
                     'acceptance': 100 * len(accepted.all()) / submissions_num if submissions_num else 0,
                     'difficulty': {0: 'Easy', 1: 'Medium', 2: 'Hard'}[problem.difficulty]
                 })
-        return {'items': result}
+        return {'problems': result}
 
 
 class Profile(Resource):
